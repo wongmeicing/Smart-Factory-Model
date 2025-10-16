@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能工廠HVAC系統 - 三維數字孿生平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #2c3e50;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 320px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .control-panel.collapsed {
+            min-width: auto;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .data-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 350px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .data-panel.collapsed {
+            min-width: auto;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            color: #7f8c8d;
+        }
+        
+        .toggle-btn:hover {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #34495e;
+        }
+        
+        .temp-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .control-button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: #3498db;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .control-button.active {
+            background: #2ecc71;
+        }
+        
+        .control-button.secondary {
+            background: #95a5a6;
+        }
+        
+        .control-button.warning {
+            background: #e74c3c;
+        }
+        
+        .sensor-grid {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .sensor-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .sensor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .sensor-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .sensor-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #e74c3c;
+        }
+        
+        .sensor-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .temp-bar {
+            width: 100%;
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        
+        .temp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #e74c3c);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .system-status {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .status-value {
+            font-weight: 600;
+        }
+        
+        .efficiency-high { color: #27ae60; }
+        .efficiency-medium { color: #f39c12; }
+        .efficiency-low { color: #e74c3c; }
+        
+        .simulation-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .sim-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .sim-button.play {
+            background: #2ecc71;
+            color: white;
+        }
+        
+        .sim-button.pause {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .sim-button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        
+        .floating-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 90;
+        }
+        
+        .floating-btn {
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .floating-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .collapsed-panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            color: #7f8c8d;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <h2>智能工廠 HVAC 系統</h2>
+        <p>三維數字孿生平台加載中...</p>
+    </div>
+    
+    <div class="data-panel" id="dataPanel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <span>📊 實時監控儀表板</span>
+            </div>
+            <button class="toggle-btn" id="toggleDataPanel" title="隱藏儀表板">−</button>
+        </div>
+        
+        <div class="panel-content">
+            <div class="sensor-grid" id="sensorGrid">
+                <!-- 傳感器數據將在這裡動態生成 -->
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">總能耗</div>
+                    <div class="stat-value" id="totalEnergy">0.0 kW</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">系統效率</div>
+                    <div class="stat-value" id="systemEfficiency">0%</div>
+                </div>
+            </div>
+            
+            <div class="system-status">
+                <div class="status-item">
+                    <span>運行狀態</span>
+                    <span class="status-value" id="systemStatus">運行中</span>
+                </div>
+                <div class="status-item">
+                    <span>環境溫度</span>
+                    <span class="status-value" id="envTemp">25.0°C</span>
+                </div>
+                <div class="status-item">
+                    <span>最後更新</span>
+                    <span class="status-value" id="lastUpdate">--:--:--</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="collapsed-panel" style="display: none;">
+            <button class="toggle-btn" id="expandDataPanel" title="展開儀表板">📊</button>
+        </div>
+    </div>
+    
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <span>⚙️ 系統控制中心</span>
+            </div>
+            <button class="toggle-btn" id="toggleControlPanel" title="隱藏控制中心">−</button>
+        </div>
+        
+        <div class="panel-content">
+            <div class="control-group">
+                <label class="control-label">全局溫度設定</label>
+                <input type="range" class="temp-slider" id="globalTemp" min="18" max="26" step="0.5" value="22">
+                <div style="text-align: center; font-weight: 600; color: #e74c3c;" id="tempValue">22.0°C</div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">運行模式</label>
+                <div class="button-group">
+                    <button class="control-button active" id="modeComfort">舒適模式</button>
+                    <button class="control-button" id="modeEco">節能模式</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">系統操作</label>
+                <div class="button-group">
+                    <button class="control-button secondary" id="btnOptimize">AI優化</button>
+                    <button class="control-button warning" id="btnReset">重置系統</button>
+                </div>
+            </div>
+            
+            <div class="simulation-controls">
+                <button class="sim-button play" id="btnPlay" disabled>▶ 繼續</button>
+                <button class="sim-button pause" id="btnPause">⏸ 暫停</button>
+            </div>
+        </div>
+        
+        <div class="collapsed-panel" style="display: none;">
+            <button class="toggle-btn" id="expandControlPanel" title="展開控制中心">⚙️</button>
+        </div>
+    </div>
+
+    <div class="floating-controls">
+        <button class="floating-btn" id="showAllPanels">
+            <span>👁️</span> 顯示所有面板
+        </button>
+        <button class="floating-btn" id="hideAllPanels">
+            <span>👁️‍🗨️</span> 隱藏所有面板
+        </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // 智能工廠HVAC系統主類
+        class SmartFactoryHVAC {
+            constructor(scene) {
+                this.scene = scene;
+                this.zones = [];
+                this.equipment = [];
+                this.energyConsumption = 0;
+                this.globalTemperature = 22;
+                this.mode = 'comfort';
+                this.isRunning = true;
+                
+                this.initFactory();
+            }
+            
+            initFactory() {
+                this.createMainBuilding();
+                this.createProductionZones();
+                this.createHVACEquipment();
+                this.createInfrastructure();
+            }
+            
+            createMainBuilding() {
+                // 主廠房結構
+                const mainBuilding = new THREE.Group();
+                
+                // 廠房主體
+                const buildingGeometry = new THREE.BoxGeometry(80, 25, 60);
+                const buildingMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x7e8c9e,
+                    transparent: true,
+                    opacity: 0.8,
+                    shininess: 30
+                });
+                const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                building.position.set(0, 12.5, 0);
+                building.castShadow = true;
+                building.receiveShadow = true;
+                mainBuilding.add(building);
+                
+                // 屋頂
+                const roofGeometry = new THREE.CylinderGeometry(45, 50, 8, 4);
+                const roofMaterial = new THREE.MeshPhongMaterial({ color: 0x34495e });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(0, 29, 0);
+                roof.rotation.y = Math.PI / 4;
+                roof.castShadow = true;
+                mainBuilding.add(roof);
+                
+                this.scene.add(mainBuilding);
+                this.equipment.push(mainBuilding);
+            }
+            
+            createProductionZones() {
+                const zoneConfigs = [
+                    {
+                        name: '原料處理區',
+                        position: [-25, 2, -20],
+                        size: [20, 10, 15],
+                        baseTemp: 20,
+                        color: 0x3498db
+                    },
+                    {
+                        name: '生產製造區',
+                        position: [0, 2, -20],
+                        size: [25, 12, 15],
+                        baseTemp: 22,
+                        color: 0xe74c3c
+                    },
+                    {
+                        name: '組裝測試區',
+                        position: [25, 2, -20],
+                        size: [20, 10, 15],
+                        baseTemp: 23,
+                        color: 0xf39c12
+                    },
+                    {
+                        name: '包裝出貨區',
+                        position: [-15, 2, 15],
+                        size: [25, 8, 20],
+                        baseTemp: 21,
+                        color: 0x2ecc71
+                    },
+                    {
+                        name: '品質檢驗區',
+                        position: [15, 2, 15],
+                        size: [20, 8, 20],
+                        baseTemp: 22,
+                        color: 0x9b59b6
+                    }
+                ];
+                
+                zoneConfigs.forEach(config => {
+                    const zone = this.createZone(config);
+                    this.zones.push(zone);
+                });
+            }
+            
+            createZone(config) {
+                const geometry = new THREE.BoxGeometry(...config.size);
+                const material = new THREE.MeshPhongMaterial({
+                    color: config.color,
+                    transparent: true,
+                    opacity: 0.7,
+                    shininess: 50
+                });
+                
+                const zone = new THREE.Mesh(geometry, material);
+                zone.position.set(...config.position);
+                
+                // 添加邊框
+                const edges = new THREE.EdgesGeometry(geometry);
+                const line = new THREE.LineSegments(edges, 
+                    new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 })
+                );
+                zone.add(line);
+                
+                zone.userData = {
+                    name: config.name,
+                    currentTemp: config.baseTemp,
+                    targetTemp: config.baseTemp,
+                    energyUsage: 0,
+                    baseTemp: config.baseTemp,
+                    lastUpdate: Date.now(),
+                    color: config.color
+                };
+                
+                this.scene.add(zone);
+                return zone;
+            }
+            
+            createHVACEquipment() {
+                this.createAirHandlingUnits();
+                this.createCoolingTowers();
+                this.createVentilationSystem();
+            }
+            
+            createAirHandlingUnits() {
+                // 空調主機
+                const ahuGroup = new THREE.Group();
+                
+                const ahuGeometry = new THREE.CylinderGeometry(3, 3, 8, 16);
+                const ahuMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x34495e,
+                    shininess: 100
+                });
+                
+                for (let i = 0; i < 3; i++) {
+                    const ahu = new THREE.Mesh(ahuGeometry, ahuMaterial);
+                    ahu.position.set(-35 + i * 8, 4, -35);
+                    ahu.rotation.x = Math.PI / 2;
+                    ahu.castShadow = true;
+                    ahuGroup.add(ahu);
+                }
+                
+                this.scene.add(ahuGroup);
+                this.equipment.push(ahuGroup);
+            }
+            
+            createCoolingTowers() {
+                const towerGroup = new THREE.Group();
+                
+                const towerGeometry = new THREE.BoxGeometry(6, 5, 6);
+                const towerMaterial = new THREE.MeshPhongMaterial({ color: 0x7f8c8d });
+                
+                for (let i = 0; i < 2; i++) {
+                    const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+                    tower.position.set(35 + i * 10, 2.5, -35);
+                    tower.castShadow = true;
+                    towerGroup.add(tower);
+                }
+                
+                this.scene.add(towerGroup);
+                this.equipment.push(towerGroup);
+            }
+            
+            createVentilationSystem() {
+                // 通風管道系統
+                const ductGroup = new THREE.Group();
+                const ductMaterial = new THREE.MeshPhongMaterial({ color: 0x95a5a6 });
+                
+                // 主風管
+                const mainDuctGeometry = new THREE.CylinderGeometry(1.5, 1.5, 70, 8);
+                const mainDuct = new THREE.Mesh(mainDuctGeometry, ductMaterial);
+                mainDuct.position.set(0, 18, 0);
+                mainDuct.rotation.z = Math.PI / 2;
+                ductGroup.add(mainDuct);
+                
+                // 分支風管
+                const branchPositions = [
+                    [-25, 18, -20], [0, 18, -20], [25, 18, -20],
+                    [-15, 18, 15], [15, 18, 15]
+                ];
+                
+                branchPositions.forEach(pos => {
+                    const branchGeometry = new THREE.CylinderGeometry(1, 1, 15, 8);
+                    const branch = new THREE.Mesh(branchGeometry, ductMaterial);
+                    branch.position.set(pos[0], pos[1], pos[2]);
+                    branch.rotation.x = Math.PI / 2;
+                    ductGroup.add(branch);
+                });
+                
+                this.scene.add(ductGroup);
+                this.equipment.push(ductGroup);
+            }
+            
+            createInfrastructure() {
+                // 地面
+                const groundGeometry = new THREE.PlaneGeometry(200, 200);
+                const groundMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0xecf0f1,
+                    shininess: 20
+                });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+                
+                // 網格輔助線
+                const gridHelper = new THREE.GridHelper(200, 20, 0x000000, 0x000000);
+                gridHelper.material.opacity = 0.1;
+                gridHelper.material.transparent = true;
+                this.scene.add(gridHelper);
+            }
+            
+            updateSystem(deltaTime) {
+                if (!this.isRunning) return;
+                
+                this.zones.forEach(zone => {
+                    this.updateZoneTemperature(zone, deltaTime);
+                });
+                
+                this.calculateEnergyConsumption();
+                this.updateVisualization();
+            }
+            
+            updateZoneTemperature(zone, deltaTime) {
+                const data = zone.userData;
+                const now = Date.now();
+                
+                // 設定目標溫度
+                if (this.mode === 'eco') {
+                    data.targetTemp = this.globalTemperature - 1;
+                } else {
+                    data.targetTemp = this.globalTemperature;
+                }
+                data.targetTemp += (data.baseTemp - 22);
+                
+                // 環境擾動
+                if (now - data.lastUpdate > 4000) {
+                    data.targetTemp += (Math.random() - 0.5) * 1.5;
+                    data.lastUpdate = now;
+                }
+                
+                // 溫度變化
+                const tempDiff = data.targetTemp - data.currentTemp;
+                data.currentTemp += tempDiff * 0.2 * deltaTime;
+                
+                // 能耗計算
+                const energyFactor = this.mode === 'eco' ? 1.2 : 1.8;
+                data.energyUsage = Math.abs(tempDiff) * energyFactor + 0.5;
+            }
+            
+            calculateEnergyConsumption() {
+                this.energyConsumption = this.zones.reduce((total, zone) => {
+                    return total + zone.userData.energyUsage;
+                }, 0);
+                
+                const baseEnergy = this.mode === 'eco' ? 8 : 12;
+                this.energyConsumption += baseEnergy;
+            }
+            
+            updateVisualization() {
+                this.zones.forEach(zone => {
+                    const temp = zone.userData.currentTemp;
+                    const normalizedTemp = (temp - 18) / (28 - 18);
+                    
+                    // 更新顏色
+                    const originalColor = new THREE.Color(zone.userData.color);
+                    const tempColor = new THREE.Color().lerpColors(
+                        new THREE.Color(0x3498db),
+                        new THREE.Color(0xe74c3c),
+                        normalizedTemp
+                    );
+                    
+                    zone.material.color.lerp(tempColor, 0.1);
+                    zone.material.opacity = 0.5 + normalizedTemp * 0.3;
+                });
+            }
+            
+            setGlobalTemperature(temp) {
+                this.globalTemperature = temp;
+            }
+            
+            setMode(mode) {
+                this.mode = mode;
+            }
+            
+            setRunning(running) {
+                this.isRunning = running;
+            }
+            
+            optimizeSystem() {
+                this.globalTemperature = 22;
+                this.mode = 'comfort';
+            }
+            
+            getSystemStatus() {
+                return {
+                    totalEnergy: this.energyConsumption,
+                    globalTemp: this.globalTemperature,
+                    mode: this.mode,
+                    isRunning: this.isRunning,
+                    zones: this.zones.map(zone => ({
+                        name: zone.userData.name,
+                        temperature: zone.userData.currentTemp,
+                        energy: zone.userData.energyUsage,
+                        targetTemp: zone.userData.targetTemp
+                    }))
+                };
+            }
+        }
+
+        // 傳感器網絡類
+        class SensorNetwork {
+            constructor(scene, hvacSystem) {
+                this.scene = scene;
+                this.hvacSystem = hvacSystem;
+                this.sensors = [];
+                this.sensorData = {};
+                
+                this.initSensors();
+            }
+            
+            initSensors() {
+                this.hvacSystem.zones.forEach((zone, index) => {
+                    this.addTemperatureSensor(zone, `zone_${index + 1}`);
+                });
+                
+                this.addEnergySensor();
+                this.addEnvironmentSensor();
+            }
+            
+            addTemperatureSensor(zone, sensorId) {
+                const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+                const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+                
+                const sensor = new THREE.Mesh(geometry, material);
+                sensor.position.copy(zone.position);
+                sensor.position.y += zone.geometry.parameters.height / 2 + 1;
+                
+                sensor.userData = {
+                    id: sensorId,
+                    type: 'temperature',
+                    zone: zone,
+                    unit: '°C'
+                };
+                
+                this.scene.add(sensor);
+                this.sensors.push(sensor);
+                
+                this.sensorData[sensorId] = {
+                    currentValue: zone.userData.currentTemp,
+                    history: [],
+                    unit: '°C',
+                    name: zone.userData.name
+                };
+            }
+            
+            addEnergySensor() {
+                this.sensorData['energy_main'] = {
+                    currentValue: 0,
+                    history: [],
+                    unit: 'kW',
+                    name: '總能耗'
+                };
+            }
+            
+            addEnvironmentSensor() {
+                this.sensorData['env_outdoor'] = {
+                    currentValue: 25,
+                    history: [],
+                    unit: '°C',
+                    name: '室外溫度'
+                };
+            }
+            
+            updateSensors(deltaTime) {
+                if (!this.hvacSystem.isRunning) return;
+                
+                this.sensors.forEach(sensor => {
+                    const sensorId = sensor.userData.id;
+                    const zone = sensor.userData.zone;
+                    
+                    const noise = (Math.random() - 0.5) * 0.2;
+                    const temperature = zone.userData.currentTemp + noise;
+                    
+                    this.sensorData[sensorId].currentValue = temperature;
+                    this.sensorData[sensorId].history.push({
+                        timestamp: Date.now(),
+                        value: temperature
+                    });
+                    
+                    if (this.sensorData[sensorId].history.length > 30) {
+                        this.sensorData[sensorId].history.shift();
+                    }
+                });
+                
+                // 更新能耗傳感器
+                this.sensorData['energy_main'].currentValue = this.hvacSystem.energyConsumption;
+                
+                // 更新環境傳感器
+                const time = Date.now() * 0.0005;
+                this.sensorData['env_outdoor'].currentValue = 20 + Math.sin(time) * 6 + Math.random();
+            }
+            
+            getSensorReadings() {
+                return this.sensorData;
+            }
+        }
+
+        // 可視化控制類
+        class VisualizationController {
+            constructor(sensorNetwork, hvacSystem) {
+                this.sensorNetwork = sensorNetwork;
+                this.hvacSystem = hvacSystem;
+                this.lastUpdateTime = 0;
+                this.updateInterval = 1000; // 1秒更新一次
+                
+                this.initUI();
+            }
+            
+            initUI() {
+                this.createSensorDisplays();
+            }
+            
+            createSensorDisplays() {
+                const sensorGrid = document.getElementById('sensorGrid');
+                const readings = this.sensorNetwork.getSensorReadings();
+                
+                sensorGrid.innerHTML = '';
+                
+                Object.keys(readings).forEach(sensorId => {
+                    if (sensorId.includes('zone_')) {
+                        const sensor = readings[sensorId];
+                        const tempPercent = ((sensor.currentValue - 18) / (28 - 18)) * 100;
+                        
+                        const sensorElement = document.createElement('div');
+                        sensorElement.className = 'sensor-item';
+                        sensorElement.innerHTML = `
+                            <div class="sensor-header">
+                                <span class="sensor-name">${sensor.name}</span>
+                                <span class="sensor-value">${sensor.currentValue.toFixed(1)}${sensor.unit}</span>
+                            </div>
+                            <div class="temp-bar">
+                                <div class="temp-fill" style="width: ${tempPercent}%"></div>
+                            </div>
+                            <div class="sensor-details">
+                                <span>目標: ${this.hvacSystem.globalTemperature}${sensor.unit}</span>
+                                <span>${this.hvacSystem.mode === 'eco' ? '節能模式' : '舒適模式'}</span>
+                            </div>
+                        `;
+                        
+                        sensorGrid.appendChild(sensorElement);
+                    }
+                });
+            }
+            
+            updateDisplay() {
+                const currentTime = Date.now();
+                if (currentTime - this.lastUpdateTime < this.updateInterval) {
+                    return;
+                }
+                this.lastUpdateTime = currentTime;
+                
+                const readings = this.sensorNetwork.getSensorReadings();
+                const systemStatus = this.hvacSystem.getSystemStatus();
+                
+                // 更新傳感器顯示
+                this.createSensorDisplays();
+                
+                // 更新統計數據
+                document.getElementById('totalEnergy').textContent = 
+                    `${readings['energy_main'].currentValue.toFixed(1)} kW`;
+                
+                const usefulEnergy = systemStatus.zones.reduce((sum, zone) => sum + zone.energy, 0);
+                const efficiency = readings['energy_main'].currentValue > 0 ? 
+                    (usefulEnergy / readings['energy_main'].currentValue * 100) : 0;
+                
+                document.getElementById('systemEfficiency').textContent = `${efficiency.toFixed(1)}%`;
+                document.getElementById('systemEfficiency').className = 
+                    efficiency > 70 ? 'stat-value efficiency-high' :
+                    efficiency > 50 ? 'stat-value efficiency-medium' : 'stat-value efficiency-low';
+                
+                // 更新系統狀態
+                document.getElementById('systemStatus').textContent = 
+                    systemStatus.isRunning ? '運行中' : '已暫停';
+                document.getElementById('systemStatus').style.color = 
+                    systemStatus.isRunning ? '#27ae60' : '#e74c3c';
+                
+                document.getElementById('envTemp').textContent = 
+                    `${readings['env_outdoor'].currentValue.toFixed(1)}°C`;
+                
+                document.getElementById('lastUpdate').textContent = 
+                    new Date().toLocaleTimeString();
+            }
+        }
+
+        // 面板管理類
+        class PanelManager {
+            constructor() {
+                this.dataPanel = document.getElementById('dataPanel');
+                this.controlPanel = document.getElementById('controlPanel');
+                this.isDataPanelCollapsed = false;
+                this.isControlPanelCollapsed = false;
+                
+                this.initPanelControls();
+            }
+            
+            initPanelControls() {
+                // 數據面板控制
+                document.getElementById('toggleDataPanel').addEventListener('click', () => {
+                    this.toggleDataPanel();
+                });
+                
+                document.getElementById('expandDataPanel').addEventListener('click', () => {
+                    this.expandDataPanel();
+                });
+                
+                // 控制面板控制
+                document.getElementById('toggleControlPanel').addEventListener('click', () => {
+                    this.toggleControlPanel();
+                });
+                
+                document.getElementById('expandControlPanel').addEventListener('click', () => {
+                    this.expandControlPanel();
+                });
+                
+                // 全局控制
+                document.getElementById('showAllPanels').addEventListener('click', () => {
+                    this.expandAllPanels();
+                });
+                
+                document.getElementById('hideAllPanels').addEventListener('click', () => {
+                    this.collapseAllPanels();
+                });
+            }
+            
+            toggleDataPanel() {
+                this.isDataPanelCollapsed = !this.isDataPanelCollapsed;
+                this.updateDataPanelState();
+            }
+            
+            toggleControlPanel() {
+                this.isControlPanelCollapsed = !this.isControlPanelCollapsed;
+                this.updateControlPanelState();
+            }
+            
+            expandDataPanel() {
+                this.isDataPanelCollapsed = false;
+                this.updateDataPanelState();
+            }
+            
+            expandControlPanel() {
+                this.isControlPanelCollapsed = false;
+                this.updateControlPanelState();
+            }
+            
+            expandAllPanels() {
+                this.isDataPanelCollapsed = false;
+                this.isControlPanelCollapsed = false;
+                this.updateDataPanelState();
+                this.updateControlPanelState();
+            }
+            
+            collapseAllPanels() {
+                this.isDataPanelCollapsed = true;
+                this.isControlPanelCollapsed = true;
+                this.updateDataPanelState();
+                this.updateControlPanelState();
+            }
+            
+            updateDataPanelState() {
+                if (this.isDataPanelCollapsed) {
+                    this.dataPanel.classList.add('collapsed');
+                    this.dataPanel.querySelector('.panel-content').style.display = 'none';
+                    this.dataPanel.querySelector('.collapsed-panel').style.display = 'flex';
+                } else {
+                    this.dataPanel.classList.remove('collapsed');
+                    this.dataPanel.querySelector('.panel-content').style.display = 'block';
+                    this.dataPanel.querySelector('.collapsed-panel').style.display = 'none';
+                }
+            }
+            
+            updateControlPanelState() {
+                if (this.isControlPanelCollapsed) {
+                    this.controlPanel.classList.add('collapsed');
+                    this.controlPanel.querySelector('.panel-content').style.display = 'none';
+                    this.controlPanel.querySelector('.collapsed-panel').style.display = 'flex';
+                } else {
+                    this.controlPanel.classList.remove('collapsed');
+                    this.controlPanel.querySelector('.panel-content').style.display = 'block';
+                    this.controlPanel.querySelector('.collapsed-panel').style.display = 'none';
+                }
+            }
+        }
+
+        // 主應用類
+        class HVACApplication {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                
+                this.hvacSystem = null;
+                this.sensorNetwork = null;
+                this.visualization = null;
+                this.panelManager = null;
+                
+                this.clock = new THREE.Clock();
+                
+                this.init();
+            }
+            
+            init() {
+                this.initScene().then(() => {
+                    this.initSystems();
+                    this.initControls();
+                    this.animate();
+                    
+                    // 隱藏加載畫面
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('loadingScreen').style.display = 'none';
+                        }, 500);
+                    }, 1000);
+                });
+            }
+            
+            async initScene() {
+                // 創建場景
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xf8f9fa);
+                this.scene.fog = new THREE.Fog(0xf8f9fa, 50, 200);
+                
+                // 創建相機
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(80, 50, 80);
+                this.camera.lookAt(0, 0, 0);
+                
+                // 創建渲染器
+                this.renderer = new THREE.WebGLRenderer({ 
+                    antialias: true,
+                    alpha: true
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.setClearColor(0x000000, 0);
+                document.getElementById('container').appendChild(this.renderer.domElement);
+                
+                // 軌道控制器
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.minDistance = 30;
+                this.controls.maxDistance = 200;
+                
+                // 光源設置
+                this.setupLights();
+                
+                // 窗口大小調整
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+            
+            setupLights() {
+                // 環境光
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+                
+                // 方向光
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(50, 50, 25);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -100;
+                directionalLight.shadow.camera.right = 100;
+                directionalLight.shadow.camera.top = 100;
+                directionalLight.shadow.camera.bottom = -100;
+                this.scene.add(directionalLight);
+            }
+            
+            initSystems() {
+                this.hvacSystem = new SmartFactoryHVAC(this.scene);
+                this.sensorNetwork = new SensorNetwork(this.scene, this.hvacSystem);
+                this.visualization = new VisualizationController(this.sensorNetwork, this.hvacSystem);
+                this.panelManager = new PanelManager();
+            }
+            
+            initControls() {
+                // 溫度滑塊
+                const tempSlider = document.getElementById('globalTemp');
+                const tempValue = document.getElementById('tempValue');
+                
+                tempSlider.addEventListener('input', (e) => {
+                    const temp = parseFloat(e.target.value);
+                    tempValue.textContent = temp.toFixed(1) + '°C';
+                    this.hvacSystem.setGlobalTemperature(temp);
+                });
+                
+                // 模式按鈕
+                document.getElementById('modeComfort').addEventListener('click', () => {
+                    this.hvacSystem.setMode('comfort');
+                    this.updateButtonStates('comfort');
+                });
+                
+                document.getElementById('modeEco').addEventListener('click', () => {
+                    this.hvacSystem.setMode('eco');
+                    this.updateButtonStates('eco');
+                });
+                
+                // 操作按鈕
+                document.getElementById('btnOptimize').addEventListener('click', () => {
+                    this.hvacSystem.optimizeSystem();
+                    tempSlider.value = 22;
+                    tempValue.textContent = '22.0°C';
+                    this.updateButtonStates('comfort');
+                });
+                
+                document.getElementById('btnReset').addEventListener('click', () => {
+                    this.hvacSystem.setGlobalTemperature(22);
+                    this.hvacSystem.setMode('comfort');
+                    this.hvacSystem.setRunning(true);
+                    tempSlider.value = 22;
+                    tempValue.textContent = '22.0°C';
+                    this.updateButtonStates('comfort');
+                    this.updateSimulationButtons(true);
+                });
+                
+                // 模擬控制按鈕
+                document.getElementById('btnPlay').addEventListener('click', () => {
+                    this.hvacSystem.setRunning(true);
+                    this.updateSimulationButtons(true);
+                });
+                
+                document.getElementById('btnPause').addEventListener('click', () => {
+                    this.hvacSystem.setRunning(false);
+                    this.updateSimulationButtons(false);
+                });
+                
+                // 初始化按鈕狀態
+                this.updateButtonStates('comfort');
+                this.updateSimulationButtons(true);
+            }
+            
+            updateButtonStates(activeMode) {
+                const ecoBtn = document.getElementById('modeEco');
+                const comfortBtn = document.getElementById('modeComfort');
+                
+                ecoBtn.classList.toggle('active', activeMode === 'eco');
+                comfortBtn.classList.toggle('active', activeMode === 'comfort');
+            }
+            
+            updateSimulationButtons(isRunning) {
+                const playBtn = document.getElementById('btnPlay');
+                const pauseBtn = document.getElementById('btnPause');
+                
+                playBtn.disabled = isRunning;
+                pauseBtn.disabled = !isRunning;
+            }
+            
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                const deltaTime = Math.min(this.clock.getDelta(), 0.1);
+                
+                try {
+                    // 更新HVAC系統
+                    if (this.hvacSystem) {
+                        this.hvacSystem.updateSystem(deltaTime);
+                    }
+                    
+                    // 更新傳感器網絡
+                    if (this.sensorNetwork) {
+                        this.sensorNetwork.updateSensors(deltaTime);
+                    }
+                    
+                    // 更新可視化
+                    if (this.visualization) {
+                        this.visualization.updateDisplay();
+                    }
+                    
+                    // 更新控制器
+                    if (this.controls) {
+                        this.controls.update();
+                    }
+                    
+                    // 渲染場景
+                    this.renderer.render(this.scene, this.camera);
+                    
+                } catch (error) {
+                    console.error("動畫循環錯誤:", error);
+                }
+            }
+        }
+
+        // 啟動應用
+        document.addEventListener('DOMContentLoaded', () => {
+            new HVACApplication();
+        });
+        
+        // 錯誤處理
+        window.addEventListener('error', (event) => {
+            console.error('全局錯誤:', event.error);
+            document.getElementById('loadingScreen').innerHTML = `
+                <div style="text-align: center; color: #e74c3c;">
+                    <h2>系統加載失敗</h2>
+                    <p>${event.error.message}</p>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        重新加載
+                    </button>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
